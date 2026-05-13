@@ -8,7 +8,7 @@ using Tetris.src.Logic.Services;
 public class GameEngine
 {
     public Board Board { get; set; }
-    public Tetromino CurrentFigure { get; set; }
+    public Tetromino CurrentFigure { get; private set; }
     public IGameMode GameMode { get; set; }
     public int Score { get; private set; }
     public int LinesCleared { get; private set; }

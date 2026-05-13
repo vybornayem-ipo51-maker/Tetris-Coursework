@@ -1,17 +1,15 @@
 namespace Tetris.src.UI.Rendering;
 using Tetris.src.Logic.Engine;
 using Tetris.src.Data.Models;
-
+using System;
 
 public class ConsoleRenderer
 {
     public void Draw(GameEngine engine)
     {
         Console.SetCursorPosition(0, 0);
-        // Створюємо копію поля для малювання
         int[,] displayGrid = (int[,])engine.Board.Grid.Clone();
 
-        // Накладаємо поточну фігуру на копію поля
         int[,] shape = engine.CurrentFigure.GetShape();
         for (int y = 0; y < shape.GetLength(0); y++)
         {
@@ -22,22 +20,38 @@ public class ConsoleRenderer
                     int boardY = engine.CurrentFigure.Y + y;
                     int boardX = engine.CurrentFigure.X + x;
                     if (boardY >= 0 && boardY < engine.Board.Height && boardX >= 0 && boardX < engine.Board.Width)
-                        displayGrid[boardY, boardX] = 2; // 2 означає активну фігуру
+                        displayGrid[boardY, boardX] = 2;
                 }
             }
         }
 
-        // Тепер малюємо displayGrid
+        var defaultColor = Console.ForegroundColor;
+
         for (int y = 0; y < engine.Board.Height; y++)
         {
             Console.Write("|");
             for (int x = 0; x < engine.Board.Width; x++)
             {
-                if (displayGrid[y, x] == 0) Console.Write(" .");
-                else if (displayGrid[y, x] == 1) Console.Write("[]"); // Статичні блоки
-                else Console.Write("()"); // Активна фігура
+                if (displayGrid[y, x] == 0)
+                {
+                    Console.ForegroundColor = defaultColor;
+                    Console.Write(" .");
+                }
+                else if (displayGrid[y, x] == 1)
+                {
+                    Console.ForegroundColor = ConsoleColor.Gray;
+                    Console.Write("[]");
+                }
+                else
+                {
+                    Console.ForegroundColor = engine.CurrentFigure.Color;
+                    Console.Write("()");
+                }
             }
+            Console.ForegroundColor = defaultColor;
             Console.WriteLine("|");
         }
+
+        Console.ForegroundColor = defaultColor;
     }
 }

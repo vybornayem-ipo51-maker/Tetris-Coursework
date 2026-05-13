@@ -1,8 +1,11 @@
 namespace Tetris.src.Logic.Tetrominoes;
 using Tetris.src.Logic.Abstract;
+using System;
 
 public class JTetromino : Tetromino
 {
+    public override ConsoleColor Color => ConsoleColor.Blue;
+
     public JTetromino()
     {
         // Ініціалізуємо матрицю конкретної фігури

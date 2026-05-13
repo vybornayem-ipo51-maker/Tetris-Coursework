@@ -1,8 +1,11 @@
 namespace Tetris.src.Logic.Abstract;
+using System;
+
 public abstract class Tetromino
 {
     public int X { get; set; }
     public int Y { get; set; }
+    public abstract ConsoleColor Color { get; }
     protected int[,]? shape;
 
     public virtual int[,] GetShape() => shape ?? new int[0, 0];
