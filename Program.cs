@@ -18,13 +18,21 @@ class Program
         Console.WriteLine("2 - Спринт (40 ліній)");
         Console.WriteLine("3 - Марафон (150 ліній)");
 
-        var choice = Console.ReadLine();
-        IGameMode selectedMode = choice switch
+        IGameMode? selectedMode = null;
+        while (selectedMode == null)
         {
-            "2" => new SprintMode(),
-            "3" => new MarathonMode(),
-            _ => new ClassicMode()
-        };
+            string? choice = Console.ReadLine();
+            selectedMode = choice switch
+            {
+                "1" => new ClassicMode(),
+                "2" => new SprintMode(),
+                "3" => new MarathonMode(),
+                _ => null
+            };
+
+            if (selectedMode == null)
+                Console.WriteLine("Невірний вибір. Введіть 1, 2 або 3:");
+        }
 
         GameEngine engine = new GameEngine(selectedMode);
         ConsoleRenderer renderer = new ConsoleRenderer();
