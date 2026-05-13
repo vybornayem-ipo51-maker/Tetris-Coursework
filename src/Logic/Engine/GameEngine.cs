@@ -95,7 +95,16 @@ public class GameEngine
             for (int x = 0; x < shape.GetLength(1); x++)
             {
                 if (shape[y, x] != 0)
-                    Board.Grid[CurrentFigure.Y + y, CurrentFigure.X + x] = 1;
+                {
+                    int boardY = CurrentFigure.Y + y;
+                    int boardX = CurrentFigure.X + x;
+
+                    if (boardY >= 0 && boardY < Board.Height && boardX >= 0 && boardX < Board.Width)
+                    {
+                        Board.Grid[boardY, boardX] = 1;
+                        Board.ColorGrid[boardY, boardX] = CurrentFigure.Color;
+                    }
+                }
             }
         }
     }

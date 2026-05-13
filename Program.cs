@@ -12,6 +12,7 @@ class Program
     static void Main(string[] args)
     {
         Console.OutputEncoding = System.Text.Encoding.UTF8;
+        Console.CursorVisible = false;
         Console.WriteLine("=== ВІТАЄМО У ТЕТРІСІ ===");
         Console.WriteLine("Оберіть режим гри:");
         Console.WriteLine("1 - Класичний (до поразки)");
@@ -40,6 +41,8 @@ class Program
         Console.WriteLine($"Гру розпочато в режимі: {selectedMode.Name}");
         Thread.Sleep(1000);
 
+        Console.Clear();
+
         while (!engine.IsGameOver)
         {
             if (Console.KeyAvailable)
@@ -50,11 +53,12 @@ class Program
 
             engine.Update();
             renderer.Draw(engine);
-            Thread.Sleep(500);
+            Thread.Sleep(300);
         }
-
+        Console.Clear();
         Console.WriteLine("\nГРА ЗАКІНЧЕНА!");
         Console.WriteLine($"Ваш результат: {engine.Score}");
+        Console.CursorVisible = true;
     }
 
     static void HandleInput(ConsoleKey key, GameEngine engine)

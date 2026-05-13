@@ -1,57 +1,67 @@
 namespace Tetris.src.UI.Rendering;
+using System;
 using Tetris.src.Logic.Engine;
 using Tetris.src.Data.Models;
-using System;
 
 public class ConsoleRenderer
 {
     public void Draw(GameEngine engine)
     {
         Console.SetCursorPosition(0, 0);
-        int[,] displayGrid = (int[,])engine.Board.Grid.Clone();
-
-        int[,] shape = engine.CurrentFigure.GetShape();
-        for (int y = 0; y < shape.GetLength(0); y++)
-        {
-            for (int x = 0; x < shape.GetLength(1); x++)
-            {
-                if (shape[y, x] != 0)
-                {
-                    int boardY = engine.CurrentFigure.Y + y;
-                    int boardX = engine.CurrentFigure.X + x;
-                    if (boardY >= 0 && boardY < engine.Board.Height && boardX >= 0 && boardX < engine.Board.Width)
-                        displayGrid[boardY, boardX] = 2;
-                }
-            }
-        }
-
-        var defaultColor = Console.ForegroundColor;
+        Console.CursorVisible = false;
 
         for (int y = 0; y < engine.Board.Height; y++)
         {
+            Console.ForegroundColor = ConsoleColor.White;
             Console.Write("|");
             for (int x = 0; x < engine.Board.Width; x++)
             {
-                if (displayGrid[y, x] == 0)
+                // 1. ПЕРЕВІРКА: Чи є тут активна фігура, що зараз падає?
+                bool isCurrentFigure = false;
+                int[,] shape = engine.CurrentFigure.GetShape();
+            
+                int fY = y - engine.CurrentFigure.Y;
+                int fX = x - engine.CurrentFigure.X;
+
+                if (fY >= 0 && fY < shape.GetLength(0) && fX >= 0 && fX < shape.GetLength(1))
                 {
-                    Console.ForegroundColor = defaultColor;
-                    Console.Write(" .");
+                    if (shape[fY, fX] != 0)
+                    {
+                        Console.ForegroundColor = engine.CurrentFigure.Color;
+                        Console.Write("[]"); // Малюємо фігуру, що падає
+                        isCurrentFigure = true;
+                    }
                 }
-                else if (displayGrid[y, x] == 1)
+
+                if (!isCurrentFigure)
                 {
-                    Console.ForegroundColor = ConsoleColor.Gray;
-                    Console.Write("[]");
-                }
-                else
-                {
-                    Console.ForegroundColor = engine.CurrentFigure.Color;
-                    Console.Write("()");
+                    if (engine.Board.Grid[y, x] != 0)
+                    {
+                        // 2. МАЛЮЄМО ВПАЛУ ФІГУРУ її рідним кольором
+                        Console.ForegroundColor = engine.Board.ColorGrid[y, x];
+                        Console.Write("[]");
+                    }
+                
+                    else
+                    {
+                        // 3. ПОРОЖНЯ КЛІТИНКА
+                        Console.ForegroundColor = ConsoleColor.DarkGray;
+                        Console.Write(" .");
+                    }
                 }
             }
-            Console.ForegroundColor = defaultColor;
-            Console.WriteLine("|");
-        }
+            Console.ForegroundColor = ConsoleColor.White;
+            Console.Write("|");
 
-        Console.ForegroundColor = defaultColor;
+            // Додаємо інфо-панель праворуч від 2-го рядка
+            if (y == 6) Console.Write("   КЕРУВАННЯ:");
+            if (y == 7) Console.Write("   ← →  : Рух");
+            if (y == 8) Console.Write("   ↑    : Поворот");
+            if (y == 9) Console.Write("   ↓    : Прискорити");
+
+            Console.WriteLine();
+        }
+        Console.ResetColor();
+        Console.WriteLine($"\nРахунок: {engine.Score}");
     }
 }
