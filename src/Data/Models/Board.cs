@@ -4,8 +4,8 @@ namespace Tetris.src.Data.Models;
 
 public class Board
 {
-    public int Width { get; set; } = 10;
-    public int Height { get; set; } = 20;
+    public int Width { get; init; } = 10;
+    public int Height { get; init; } = 20;
     public int[,] Grid { get; set; }
     public ConsoleColor[,] ColorGrid { get; set; }
 

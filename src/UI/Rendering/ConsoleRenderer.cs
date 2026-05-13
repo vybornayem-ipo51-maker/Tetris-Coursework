@@ -58,10 +58,24 @@ public class ConsoleRenderer
             if (y == 7) Console.Write("   ← →  : Рух");
             if (y == 8) Console.Write("   ↑    : Поворот");
             if (y == 9) Console.Write("   ↓    : Прискорити");
+            if (y == 10) Console.Write("   P    : Пауза / Старт");
 
             Console.WriteLine();
         }
         Console.ResetColor();
         Console.WriteLine($"\nРахунок: {engine.Score}");
+        // --- ЛОГІКА НАПИСУ ПАУЗИ ПОВЕРХ ПОЛЯ ---
+        if (engine.IsPaused)
+        {
+            // Розраховуємо центр (множимо на 2, бо один блок "[]" це 2 символи + 1 символ межі "|")
+            int centerX = (engine.Board.Width * 2) / 2 - 3; 
+            int centerY = engine.Board.Height / 2;
+
+            Console.SetCursorPosition(centerX, centerY);
+            Console.BackgroundColor = ConsoleColor.White;
+            Console.ForegroundColor = ConsoleColor.Black;
+            Console.Write("  ПАУЗА  ");
+            Console.ResetColor();
+        }
     }
 }
