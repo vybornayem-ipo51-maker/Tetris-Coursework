@@ -8,7 +8,6 @@ public class ZTetromino : Tetromino
     
     public ZTetromino()
     {
-        // Ініціалізуємо матрицю конкретної фігури
         shape = new int[,] 
         {
             {1, 1, 0},

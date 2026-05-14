@@ -1,4 +1,5 @@
 namespace Tetris.src.Logic.Engine;
+
 using Tetris.src.Data.Models;
 using Tetris.src.Logic.Abstract;
 using Tetris.src.Logic.Factories;
@@ -9,7 +10,6 @@ using System;
 public class GameEngine
 {
     public Board Board { get; set; }
-    // Використовуємо null!, щоб уникнути попередження CS8618
     public Tetromino CurrentFigure { get; private set; } = null!;
     public IGameMode GameMode { get; set; }
     public int Score { get; private set; }
@@ -26,80 +26,103 @@ public class GameEngine
         GameMode = mode;
         figureFactory = new FigureFactory();
         validator = new ValidationService();
-        
-        // Ініціалізуємо першу фігуру
-        SpawnNewFigure(); 
+        SpawnNewFigure();
     }
 
-    private bool CanPlaceFigure(int[,] shape, int x, int y)
-    {
-        for (int row = 0; row < shape.GetLength(0); row++)
-        {
-            for (int col = 0; col < shape.GetLength(1); col++)
-            {
-                if (shape[row, col] == 0) continue;
-
-                int boardX = x + col;
-                int boardY = y + row;
-
-                if (boardX < 0 || boardX >= Board.Width || boardY >= Board.Height)
-                    return false;
-
-                if (boardY >= 0 && Board.Grid[boardY, boardX] != 0)
-                    return false;
-            }
-        }
-
-        return true;
-    }
 
     private void SpawnNewFigure()
     {
         CurrentFigure = figureFactory.CreateRandomFigure();
-        
-        // Встановлюємо початкові координати (по центру зверху)
-        int shapeWidth = CurrentFigure.GetShape().GetLength(1);
-        CurrentFigure.X = (Board.Width - shapeWidth) / 2;
-        CurrentFigure.Y = 0;
 
-        // Перевірка на миттєвий програш (Game Over)
+        int shapeWidth = CurrentFigure.GetShape().GetLength(1);
+        int shapeHeight = CurrentFigure.GetShape().GetLength(0);
+
+        CurrentFigure.X = (Board.Width - shapeWidth) / 2;
+        CurrentFigure.Y = 0; // починаємо з рядка 0
+
+        // Якщо навіть на старті немає місця — кінець гри
         if (!CanPlaceFigure(CurrentFigure.GetShape(), CurrentFigure.X, CurrentFigure.Y))
-        {
             IsGameOver = true;
-        }
     }
 
-    public void TogglePause()
+    public void TogglePause() => IsPaused = !IsPaused;
+
+    private bool CanPlaceFigure(int[,] shape, int x, int y)
     {
-        IsPaused = !IsPaused;
+        for (int row = 0; row < shape.GetLength(0); row++)
+            for (int col = 0; col < shape.GetLength(1); col++)
+            {
+                if (shape[row, col] == 0) continue;
+
+                int bx = x + col;
+                int by = y + row;
+
+                // Вихід за горизонтальні межі або низ — заборонено
+                if (bx < 0 || bx >= Board.Width) return false;
+                if (by >= Board.Height) return false;
+
+                // Вище поля — дозволяємо рух але не фіксацію
+                if (by < 0) continue;
+
+                // Колізія з блоком
+                if (Board.Grid[by, bx] != 0) return false;
+            }
+        return true;
+    }
+    private bool IsFullyInsideBoard(int[,] shape, int x, int y)
+    {
+        for (int row = 0; row < shape.GetLength(0); row++)
+            for (int col = 0; col < shape.GetLength(1); col++)
+            {
+                if (shape[row, col] == 0) continue;
+                int by = y + row;
+                if (by < 0) return false; // хоч один блок вище поля
+            }
+        return true;
     }
 
     public void Rotate()
     {
         if (IsPaused || IsGameOver) return;
-        
+
+        // Зберігаємо повний стан перед поворотом
+        int[,] savedShape = CurrentFigure.CloneShape();
+        int savedX = CurrentFigure.X;
+        int savedY = CurrentFigure.Y;
+
         CurrentFigure.Rotate();
-        if (!validator.IsValidPosition(Board, CurrentFigure.GetShape(), CurrentFigure.X, CurrentFigure.Y))
+
+        // Пробуємо поточну позицію
+        if (CanPlaceFigure(CurrentFigure.GetShape(), CurrentFigure.X, CurrentFigure.Y))
+            return;
+
+        // Wall kick — зміщення по X
+        int[] kicks = { 1, -1, 2, -2 };
+        foreach (int dx in kicks)
         {
-            // Повертаємо ще 3 рази для скасування повороту
-            CurrentFigure.Rotate();
-            CurrentFigure.Rotate();
-            CurrentFigure.Rotate();
+            if (CanPlaceFigure(CurrentFigure.GetShape(), CurrentFigure.X + dx, CurrentFigure.Y))
+            {
+                CurrentFigure.X += dx;
+                return;
+            }
         }
+
+        // Нічого не підійшло — повний відкат
+        CurrentFigure.RestoreShape(savedShape);
+        CurrentFigure.X = savedX;
+        CurrentFigure.Y = savedY;
     }
 
     public void Update()
     {
         if (IsPaused || IsGameOver) return;
 
-        // Перевірка умови перемоги (для Sprint або Marathon)
         if (GameMode.CheckWinCondition(LinesCleared))
         {
             IsGameOver = true;
             return;
         }
 
-        // Автоматичне падіння вниз
         MoveDown();
     }
 
@@ -109,64 +132,88 @@ public class GameEngine
 
         int[,] shape = CurrentFigure.GetShape();
 
+        // Якщо можна рухатись вниз — рухаємось
         if (CanPlaceFigure(shape, CurrentFigure.X, CurrentFigure.Y + 1))
         {
             CurrentFigure.Y++;
             return;
         }
 
-        if (!CanPlaceFigure(shape, CurrentFigure.X, CurrentFigure.Y))
+        // Не можна рухатись вниз — перевіряємо чи фігура повністю в полі
+        if (!IsFullyInsideBoard(shape, CurrentFigure.X, CurrentFigure.Y))
+        {
+            // Фігура застрягла вище поля — кінець гри
+            IsGameOver = true;
+            return;
+        }
+
+        // Фіксуємо фігуру
+        PlaceFigure();
+        int cleared = ClearLines();
+        AddScore(cleared);
+        SpawnNewFigure();
+    }
+    public void HardDrop()
+    {
+        if (IsPaused || IsGameOver) return;
+
+        int[,] shape = CurrentFigure.GetShape();
+        while (CanPlaceFigure(shape, CurrentFigure.X, CurrentFigure.Y + 1))
+            CurrentFigure.Y++;
+
+        if (!IsFullyInsideBoard(shape, CurrentFigure.X, CurrentFigure.Y))
         {
             IsGameOver = true;
             return;
         }
 
         PlaceFigure();
-        ClearLines();
+        int cleared = ClearLines();
+        AddScore(cleared);
         SpawnNewFigure();
     }
-
     public void MoveLeft()
     {
         if (IsPaused || IsGameOver) return;
-        if (validator.IsValidPosition(Board, CurrentFigure.GetShape(), CurrentFigure.X - 1, CurrentFigure.Y))
+        if (CanPlaceFigure(CurrentFigure.GetShape(), CurrentFigure.X - 1, CurrentFigure.Y))
             CurrentFigure.X--;
     }
 
     public void MoveRight()
     {
         if (IsPaused || IsGameOver) return;
-        if (validator.IsValidPosition(Board, CurrentFigure.GetShape(), CurrentFigure.X + 1, CurrentFigure.Y))
+        if (CanPlaceFigure(CurrentFigure.GetShape(), CurrentFigure.X + 1, CurrentFigure.Y))
             CurrentFigure.X++;
     }
 
     private void PlaceFigure()
     {
         int[,] shape = CurrentFigure.GetShape();
-        for (int y = 0; y < shape.GetLength(0); y++)
-        {
-            for (int x = 0; x < shape.GetLength(1); x++)
+        for (int row = 0; row < shape.GetLength(0); row++)
+            for (int col = 0; col < shape.GetLength(1); col++)
             {
-                if (shape[y, x] != 0) // Якщо в цій клітині фігури є блок
-                {
-                    int boardY = CurrentFigure.Y + y;
-                    int boardX = CurrentFigure.X + x;
+                if (shape[row, col] == 0) continue;
 
-                    // ПЕРЕВІРКА МЕЖ: Не записуємо, якщо y < 0, щоб не "зламати" гру
-                    if (boardY >= 0 && boardY < Board.Height && boardX >= 0 && boardX < Board.Width)
-                    {
-                        // ЦЕЙ РЯДОК ПЕРЕТВОРЮЄ "ПОРОЖНЄ" МІСЦЕ НА БЛОК
-                        Board.Grid[boardY, boardX] = 1; 
-                        Board.ColorGrid[boardY, boardX] = CurrentFigure.Color;
-                    }
+                int by = CurrentFigure.Y + row;
+                int bx = CurrentFigure.X + col;
+
+                if (by >= 0 && by < Board.Height && bx >= 0 && bx < Board.Width)
+                {
+                    // Якщо клітинка вже зайнята — це баг, але захищаємось
+                    if (Board.Grid[by, bx] != 0) continue;
+
+                    Board.Grid[by, bx] = 1;
+                    Board.ColorGrid[by, bx] = CurrentFigure.Color;
                 }
             }
-        }
     }
 
-    private void ClearLines()
+    private int ClearLines()
     {
-        for (int y = Board.Height - 1; y >= 0; y--)
+        int cleared = 0;
+        int y = Board.Height - 1;
+
+        while (y >= 0)
         {
             bool isFull = true;
             for (int x = 0; x < Board.Width; x++)
@@ -176,29 +223,40 @@ public class GameEngine
 
             if (isFull)
             {
-                Score += 100;
-                LinesCleared++;
-            
-                // Зсуваємо ряди та їх кольори на один вниз
-                for (int rowToMove = y; rowToMove > 0; rowToMove--)
-                {
+                for (int row = y; row > 0; row--)
                     for (int x = 0; x < Board.Width; x++)
                     {
-                        Board.Grid[rowToMove, x] = Board.Grid[rowToMove - 1, x];
-                        Board.ColorGrid[rowToMove, x] = Board.ColorGrid[rowToMove - 1, x];
+                        Board.Grid[row, x] = Board.Grid[row - 1, x];
+                        Board.ColorGrid[row, x] = Board.ColorGrid[row - 1, x];
                     }
-                }
 
-                // Очищуємо самий верхній ряд
-                for (int x = 0; x < Board.Width; x++) 
+                for (int x = 0; x < Board.Width; x++)
                 {
                     Board.Grid[0, x] = 0;
-                    Board.ColorGrid[0, x] = ConsoleColor.Gray; // Початковий колір
+                    Board.ColorGrid[0, x] = ConsoleColor.Gray;
                 }
-            
-                // Перевіряємо цей же ряд знову, бо верхні змістилися вниз
-                y++; 
+
+                cleared++;
             }
-        }    
+            else
+            {
+                y--;
+            }
+        }
+
+        LinesCleared += cleared;
+        return cleared;
+    }
+
+    private void AddScore(int linesCleared)
+    {
+        Score += linesCleared switch
+        {
+            1 => 100,
+            2 => 300,
+            3 => 700,
+            4 => 1500,
+            _ => 0
+        };
     }
 }

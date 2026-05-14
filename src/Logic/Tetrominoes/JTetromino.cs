@@ -8,7 +8,6 @@ public class JTetromino : Tetromino
 
     public JTetromino()
     {
-        // Ініціалізуємо матрицю конкретної фігури
         shape = new int[,] 
         {
             {0, 1},

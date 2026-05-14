@@ -7,7 +7,6 @@ public class ITetromino : Tetromino
     public override ConsoleColor Color => ConsoleColor.Cyan;
     public ITetromino()
     {
-        // Ініціалізуємо матрицю конкретної фігури
         shape = new int[,] 
         {
             {1, 1, 1, 1}

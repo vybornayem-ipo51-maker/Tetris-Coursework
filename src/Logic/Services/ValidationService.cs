@@ -4,7 +4,7 @@ namespace Tetris.src.Logic.Services;
 
 public class ValidationService
 {
-    // Це і є БІЗНЕС-ЛОГІКА валідації
+    // БІЗНЕС-ЛОГІКА валідації
     public bool IsValidPosition(Board board, int[,] shape, int x, int y)
     {
         for (int row = 0; row < shape.GetLength(0); row++)
